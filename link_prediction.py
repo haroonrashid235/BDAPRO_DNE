@@ -227,13 +227,13 @@ for x in emb_tuple:
 print(f"Initial Graph with {num_nodes} nodes took {end_time - start_time} ms for embeddings...")
 
 times[num_nodes] = end_time - start_time
-OFFSET = 2
+OFFSET = 200
 
 START = 0
 END = START + OFFSET
 
 
-NUM_SNAPSHOTS = 9
+NUM_SNAPSHOTS = 10
 new_graph = g_init
 current_snapshot = 1
 
@@ -256,7 +256,7 @@ while END < NUM_SNAPSHOTS * OFFSET:#len(dynamic_splits):
     end_time = time.time()
 
     print(f"Dynamic Graph with {int(num_nodes)+END} nodes took {end_time - start_time} ms for embeddings...")
-    times[int(num_nodes)+END] = end_time - start_time
+    times[str(int(num_nodes)+END)] = end_time - start_time
 
     emb_scores =[]
     for x in emb_tuple:
