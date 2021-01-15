@@ -161,13 +161,17 @@ def get_data(graph):
 def get_embeddings(G_data, data):
 
     # Generate walks
-    node2vec = Node2Vec(G_data, dimensions=100, walk_length=16, num_walks=50)
+    node2vec = Node2Vec(G_data, dimensions=20, walk_length=16, num_walks=50)
 
     # train node2vec model
     n2w_model = node2vec.fit(window=7, min_count=1)
-    x = [(n2w_model[str(i)]+n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
 
-    return x, data
+    x1 = [(n2w_model[str(i)]+n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
+    x2 = [np.multiply(n2w_model[str(i)], n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
+    x3 = [np.mean([n2w_model[str(i)],n2w_model[str(j)]],axis=0) for i,j in zip(data['node_1'], data['node_2'])]
+    x4 = [np.concatenate((n2w_model[str(i)],n2w_model[str(j)])) for i,j in zip(data['node_1'], data['node_2'])]
+
+    return (x1,x2,x3,x4), data
 
 
 def test_embeddings(x, data):
@@ -211,9 +215,14 @@ times = {}
 
 G_data, data = get_data(g_init)
 start_time = time.time()
-x, data = get_embeddings(G_data, data)
+emb_tuple, data = get_embeddings(G_data, data)
 end_time = time.time()
-auc_score = test_embeddings(x, data)
+
+emb_scores =[]
+for x in emb_tuple:
+    auc_score = test_embeddings(x, data)
+    emb_scores.append(auc_score)
+
 
 print(f"Initial Graph with {num_nodes} nodes took {end_time - start_time} ms for embeddings...")
 
@@ -228,7 +237,7 @@ NUM_SNAPSHOTS = 9
 new_graph = g_init
 current_snapshot = 1
 
-auc_scores.append(auc_score)
+auc_scores.append(emb_scores)
 
 while END < NUM_SNAPSHOTS * OFFSET:#len(dynamic_splits):
     new_splits = dynamic_splits[START:END]
@@ -243,14 +252,17 @@ while END < NUM_SNAPSHOTS * OFFSET:#len(dynamic_splits):
 
     G_data, data = get_data(new_graph)
     start_time = time.time()
-    x, data = get_embeddings(G_data, data)
+    emb_tuple, data = get_embeddings(G_data, data)
     end_time = time.time()
 
     print(f"Dynamic Graph with {int(num_nodes)+END} nodes took {end_time - start_time} ms for embeddings...")
     times[int(num_nodes)+END] = end_time - start_time
 
-    auc_score = test_embeddings(x, data)
-    auc_scores.append(auc_score)
+    emb_scores =[]
+    for x in emb_tuple:
+        auc_score = test_embeddings(x, data)
+        emb_scores.append(auc_score)
+    auc_scores.append(emb_scores)
 
     START = END
     END = START + OFFSET
