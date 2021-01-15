@@ -19,6 +19,8 @@ from node2vec import Node2Vec
 import time
 import pickle
 
+random.seed(43)
+
 
 SHOW_PLOT = False
 
