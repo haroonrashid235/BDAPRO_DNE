@@ -23,7 +23,7 @@ import pickle
 BINARY_CLASSIFICATION=True
 SHOW_PLOT = False
 #############################
-OFFSET_LIST = [400, 600, 800, 1000]
+OFFSET_LIST = [50,100, 200, 400, 600, 800, 1000]
 
 
 init_file = "data/amherst_558_0.25_nw_init"
