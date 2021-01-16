@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 import random
-import math
-
 import networkx as nx
 from tqdm import tqdm
 import re
@@ -25,7 +23,6 @@ random.seed(43)
 
 
 SHOW_PLOT = False
-OFFSET = 400
 
 init_file = "data/amherst_558_0.25_nw_init"
 dynamic_file = 'data/amherst_558_0.25_nw_dynamic'
@@ -171,9 +168,12 @@ def get_embeddings(G_data, data):
     # train node2vec model
     n2w_model = node2vec.fit(window=7, min_count=1)
 
-    x = [(n2w_model[str(i)]+n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
+    x1 = [(n2w_model[str(i)]+n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
+    x2 = [np.multiply(n2w_model[str(i)], n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
+    x3 = [np.mean([n2w_model[str(i)],n2w_model[str(j)]],axis=0) for i,j in zip(data['node_1'], data['node_2'])]
+    x4 = [np.concatenate((n2w_model[str(i)],n2w_model[str(j)])) for i,j in zip(data['node_1'], data['node_2'])]
 
-    return x, data
+    return (x1,x2,x3,x4), data
 
 
 def test_embeddings(x, data):
@@ -200,10 +200,6 @@ g_init = read_file(init_file)
 g_dyn = read_file(dynamic_file)
 
 dynamic_splits = split_list(g_dyn, val='')
-NUM_SNAPSHOTS = math.ceil(len(dynamic_splits)/OFFSET)
-
-print(f"OFFSET: {OFFSET}")
-print(f"NUM_SNAPSHOTS: {NUM_SNAPSHOTS}")
 
 num_nodes = g_init[0]
 g_init = g_init[1:]
@@ -211,6 +207,8 @@ g_init = g_init[1:]
 g_init = clean_lists([g_init])[0]
 dynamic_splits = clean_lists(dynamic_splits)
 
+print(len(dynamic_splits))
+print(len(dynamic_splits)/200)
 
 print(f"No. of Nodes: {num_nodes}, No. of links: {len(g_init)}")
 auc_scores = []
@@ -219,28 +217,29 @@ times = {}
 
 G_data, data = get_data(g_init)
 start_time = time.time()
-x, data = get_embeddings(G_data, data)
+emb_tuple, data = get_embeddings(G_data, data)
 end_time = time.time()
 
-
-auc_score = test_embeddings(x, data)
+emb_scores =[]
+for x in emb_tuple:
+    auc_score = test_embeddings(x, data)
+    emb_scores.append(auc_score)
 
 
 print(f"Initial Graph with {num_nodes} nodes took {end_time - start_time} ms for embeddings...")
 
 times[num_nodes] = end_time - start_time
-
+OFFSET = 200
 
 START = 0
 END = START + OFFSET
 
 
-
-
+NUM_SNAPSHOTS = 10
 new_graph = g_init
 current_snapshot = 1
 
-auc_scores.append(auc_score)
+auc_scores.append(emb_scores)
 
 while END < NUM_SNAPSHOTS * OFFSET:#len(dynamic_splits):
     new_splits = dynamic_splits[START:END]
@@ -255,16 +254,17 @@ while END < NUM_SNAPSHOTS * OFFSET:#len(dynamic_splits):
 
     G_data, data = get_data(new_graph)
     start_time = time.time()
-    x, data = get_embeddings(G_data, data)
+    emb_tuple, data = get_embeddings(G_data, data)
     end_time = time.time()
 
     print(f"Dynamic Graph with {int(num_nodes)+END} nodes took {end_time - start_time} ms for embeddings...")
     times[str(int(num_nodes)+END)] = end_time - start_time
 
-    
-    auc_score = test_embeddings(x, data)
-
-    auc_scores.append(auc_score)
+    emb_scores =[]
+    for x in emb_tuple:
+        auc_score = test_embeddings(x, data)
+        emb_scores.append(auc_score)
+    auc_scores.append(emb_scores)
 
     START = END
     END = START + OFFSET

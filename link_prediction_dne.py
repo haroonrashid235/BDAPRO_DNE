@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 import random
-import math
-
 import networkx as nx
 from tqdm import tqdm
 import re
@@ -17,15 +15,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 
 from node2vec import Node2Vec
-
+import json
 import time
 import pickle
 
-random.seed(43)
-
 
 SHOW_PLOT = False
-OFFSET = 400
 
 init_file = "data/amherst_558_0.25_nw_init"
 dynamic_file = 'data/amherst_558_0.25_nw_dynamic'
@@ -39,6 +34,61 @@ def read_file(filename):
         lines = f.read().splitlines()
 
     return lines
+
+######### DNE ############
+
+init_embedding_file = "res/amherst0.25/2020-12-30-18_11_22.815750_init"
+dynamic_embedding_file = "res/amherst0.25/2020-12-30-18_11_22.815750_dynamic"
+
+
+def load_json_from_file(filename):
+    return json.loads(open(filename).read())
+
+
+def load_init_embeddings():
+    embed = {}
+    init_embedding = load_json_from_file(init_embedding_file)
+    node_list = []
+    idx = 0
+    for line in read_file(init_file):
+        if len(line.split('\t')) > 1:
+            first = line.split('\t')[0]
+            second = line.split('\t')[1]
+            if first == second:
+                node_list.append(first)
+                embed[first] = [init_embedding['embeddings'][idx]]
+                idx = idx + 1
+    return embed, node_list
+
+
+def load_dynamic_embeddings(embed, node_list):
+    dyn_embedding = load_json_from_file(dynamic_embedding_file)
+    dyn_file_lines = read_file(dynamic_file)
+    idx_list = [0] + [idx + 1 for idx, val in enumerate(dyn_file_lines) if val == '']
+    idx_list = idx_list[:-1]
+    new_node_list = [dyn_file_lines[i].split('\t')[0] for i in idx_list]
+    node_list = node_list + new_node_list
+    for idx,snapshot in enumerate(dyn_embedding):
+        for idx2, embedding_vector in enumerate(snapshot['embeddings']):
+            if node_list[idx2] in embed:
+                embed[node_list[idx2]].append(embedding_vector)
+            else:
+                embed[node_list[idx2]] = ([0] * (idx+1)) + [embedding_vector]
+    return embed, node_list
+
+
+def build_embeddings():
+    embed, node_list = load_init_embeddings()
+    embed, node_list = load_dynamic_embeddings(embed, node_list)
+    return embed
+
+
+
+###########################
+
+
+
+
 
 def split_list(l, val=''):
     idx_list = [idx + 1 for idx, val in
@@ -166,13 +216,18 @@ def get_data(graph):
 def get_embeddings(G_data, data):
 
     # Generate walks
-    node2vec = Node2Vec(G_data, dimensions=20, walk_length=16, num_walks=50)
+    node2vec = Node2Vec(G_data, dimensions=100, walk_length=16, num_walks=50)
 
     # train node2vec model
     n2w_model = node2vec.fit(window=7, min_count=1)
-
     x = [(n2w_model[str(i)]+n2w_model[str(j)]) for i,j in zip(data['node_1'], data['node_2'])]
 
+    return x, data
+
+
+def get_dne_embedding(data, snapshot_idx):
+    embed = build_embeddings()
+    x = [(embed[str(i)][snapshot_idx]+embed[str(j)][snapshot_idx]) for i,j in zip(data['node_1'], data['node_2'])]
     return x, data
 
 
@@ -200,10 +255,6 @@ g_init = read_file(init_file)
 g_dyn = read_file(dynamic_file)
 
 dynamic_splits = split_list(g_dyn, val='')
-NUM_SNAPSHOTS = math.ceil(len(dynamic_splits)/OFFSET)
-
-print(f"OFFSET: {OFFSET}")
-print(f"NUM_SNAPSHOTS: {NUM_SNAPSHOTS}")
 
 num_nodes = g_init[0]
 g_init = g_init[1:]
@@ -211,6 +262,8 @@ g_init = g_init[1:]
 g_init = clean_lists([g_init])[0]
 dynamic_splits = clean_lists(dynamic_splits)
 
+print(len(dynamic_splits))
+print(len(dynamic_splits)/200)
 
 print(f"No. of Nodes: {num_nodes}, No. of links: {len(g_init)}")
 auc_scores = []
@@ -219,24 +272,25 @@ times = {}
 
 G_data, data = get_data(g_init)
 start_time = time.time()
-x, data = get_embeddings(G_data, data)
+
+
+# x, data = get_embeddings(G_data, data)
+x, data = get_dne_embedding(data, 0)
+
+
 end_time = time.time()
-
-
 auc_score = test_embeddings(x, data)
-
 
 print(f"Initial Graph with {num_nodes} nodes took {end_time - start_time} ms for embeddings...")
 
 times[num_nodes] = end_time - start_time
-
+OFFSET = 2
 
 START = 0
 END = START + OFFSET
 
 
-
-
+NUM_SNAPSHOTS = 9
 new_graph = g_init
 current_snapshot = 1
 
@@ -255,15 +309,14 @@ while END < NUM_SNAPSHOTS * OFFSET:#len(dynamic_splits):
 
     G_data, data = get_data(new_graph)
     start_time = time.time()
-    x, data = get_embeddings(G_data, data)
+    # x, data = get_embeddings(G_data, data)
+    x, data = get_dne_embedding(data, current_snapshot)
     end_time = time.time()
 
     print(f"Dynamic Graph with {int(num_nodes)+END} nodes took {end_time - start_time} ms for embeddings...")
-    times[str(int(num_nodes)+END)] = end_time - start_time
+    times[int(num_nodes)+END] = end_time - start_time
 
-    
     auc_score = test_embeddings(x, data)
-
     auc_scores.append(auc_score)
 
     START = END
