@@ -208,7 +208,7 @@ def run_experiment(OFFSET):
     print(f"AUC scores: {auc_scores}")
     print(f"Times Dict: {times}")
 
-    return auc_scores, times_dict
+    return auc_scores, times
 
 
 auc_scores_list = []
