@@ -156,6 +156,7 @@ def run_experiment(OFFSET):
     g_init = clean_lists([g_init])[0]
     dynamic_splits = clean_lists(dynamic_splits)
 
+
     NUM_SNAPSHOTS = math.ceil(len(dynamic_splits) / OFFSET)
     
     print(f"NUM_SNAPSHOTS: {NUM_SNAPSHOTS}, OFFSET: {OFFSET}")
@@ -187,7 +188,7 @@ def run_experiment(OFFSET):
 
     auc_scores.append(auc_score)
 
-    while END < NUM_SNAPSHOTS * OFFSET:  # len(dynamic_splits):
+    while END < (NUM_SNAPSHOTS * OFFSET) + OFFSET:  # len(dynamic_splits):
         new_splits = dynamic_splits[START:END]
         new_edges = [item for sublist in new_splits for item in sublist]
 

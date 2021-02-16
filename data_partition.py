@@ -1,5 +1,5 @@
 ############### CONFIG ##############
-init_dataset_size = 50000
+init_dataset_size = 20000
 snapshot_size = 10000
 split_on = ',' # Change the splitter character to what is suitable (e.g., '\t' )
 SWAPPED_COLUMNS = True # Switch to True, if the slowly changing column is to the right (should be the left one)
