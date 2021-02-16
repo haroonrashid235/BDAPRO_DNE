@@ -113,7 +113,7 @@ def get_data(edge_list):
 
 def get_embeddings(G_data, data):
     # Generate walks
-    node2vec = Node2Vec(G_data, dimensions=20, walk_length=16, num_walks=50, workers=2)
+    node2vec = Node2Vec(G_data, dimensions=20, walk_length=16, num_walks=50, workers=8)
 
     # train node2vec model
     n2w_model = node2vec.fit(window=7, min_count=1)
