@@ -8,6 +8,8 @@ import re
 import os
 import sys
 import matplotlib.pyplot as plt
+
+from sklearn import preprocessing
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -149,7 +151,7 @@ def run_experiment(OFFSET):
     dynamic_splits = split_list(g_dyn, val='')
 
     num_nodes = g_init[0]
-    g_init = g_init[1:1000]
+    g_init = g_init[1:]
 
     g_init = clean_lists([g_init])[0]
     dynamic_splits = clean_lists(dynamic_splits)
