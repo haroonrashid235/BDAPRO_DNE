@@ -106,6 +106,8 @@ def get_data(edge_list):
     # remove duplicate items from the list
     node_list = list(dict.fromkeys(node_list))
     all_labels = load_ground_truth(ground_truth_file)
+    all_labels += [2,2,2,2]
+
     labels = [all_labels[int(i)] for i in node_list]
     data = pd.DataFrame({'node':node_list, 'label':labels})
     return G, data
@@ -174,7 +176,7 @@ def run_experiment(OFFSET):
     end_time = time.time()
     auc_score = test_embeddings(x, data)
 
-    print(f"Initial Graph with {num_nodes} nodes took {end_time - start_time} ms for embeddings...")
+    print(f"Initial Graph with {num_nodes} nodes took {end_time - start_time} s for embeddings...")
 
     times[num_nodes] = end_time - start_time
 
@@ -205,7 +207,7 @@ def run_experiment(OFFSET):
 
         end_time = time.time()
 
-        print(f"Dynamic Graph with {int(num_nodes) + END} nodes took {end_time - start_time} ms for embeddings...")
+        print(f"Dynamic Graph with {int(num_nodes) + END} nodes took {end_time - start_time} s for embeddings...")
         times[int(num_nodes) + END] = end_time - start_time
 
         auc_score = test_embeddings(x, data)
