@@ -27,7 +27,7 @@ from collections import Counter
 BINARY_CLASSIFICATION=False
 SHOW_PLOT = False
 #############################
-OFFSET_LIST = [5000]
+OFFSET_LIST = [2000, 4000, 8000, 16000, 32000]
 
 
 init_file = "NCI1/NCI1.nw_init"
